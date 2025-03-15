@@ -7,9 +7,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
+// Test pages
+import ListeningTests from "./pages/Tests/ListeningTests";
+import TestDetail from "./pages/Tests/TestDetail";
+
 // Dashboard pages
 import Dashboard from "./pages/Dashboard/Dashboard";
-import ListeningTests from "./pages/Dashboard/ListeningTests";
+import ListeningTestsAdmin from "./pages/Dashboard/ListeningTests";
 import Submissions from "./pages/Dashboard/Submissions";
 import Users from "./pages/Dashboard/Users";
 import Reports from "./pages/Dashboard/Reports";
@@ -27,12 +31,15 @@ const App = () => (
         <Routes>
           {/* Main website routes */}
           <Route path="/" element={<Index />} />
-          <Route path="/tests" element={<Index />} />
+          
+          {/* Tests routes */}
+          <Route path="/tests/listening" element={<ListeningTests />} />
+          <Route path="/tests/listening/:id" element={<TestDetail />} />
           <Route path="/tests/:type" element={<Index />} />
           
           {/* Dashboard routes */}
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/listening-tests" element={<ListeningTests />} />
+          <Route path="/dashboard/listening-tests" element={<ListeningTestsAdmin />} />
           <Route path="/dashboard/submissions" element={<Submissions />} />
           <Route path="/dashboard/users" element={<Users />} />
           <Route path="/dashboard/reports" element={<Reports />} />
