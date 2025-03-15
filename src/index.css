@@ -120,4 +120,12 @@
       transform: scale(1);
     }
   }
+  
+  /* Hero section styling */
+  .hero-section {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
 }

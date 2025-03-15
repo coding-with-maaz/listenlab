@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, PlayCircle, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -9,7 +9,12 @@ export function Hero() {
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
-    <div className="hero-section min-h-[600px] flex items-center py-24">
+    <div 
+      className="hero-section min-h-[600px] flex items-center py-24 bg-cover bg-center bg-no-repeat" 
+      style={{ 
+        backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80)'
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="text-center animate-fade-in">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight mb-6">
@@ -39,14 +44,16 @@ export function Hero() {
           </div>
           
           <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/tests">
-              <Button className="btn-primary">
-                Take a Test
+            <Link to="/tests/listening">
+              <Button className="bg-ielts-blue hover:bg-ielts-blue/90 text-white py-2 px-6 font-medium rounded-md flex items-center gap-2">
+                <PlayCircle className="h-5 w-5" />
+                Start Test
               </Button>
             </Link>
-            <Link to="/dashboard">
-              <Button variant="outline" className="btn-secondary">
-                Admin Dashboard
+            <Link to="/practice">
+              <Button variant="outline" className="bg-transparent border-2 border-ielts-green text-white hover:bg-ielts-green/20 py-2 px-6 font-medium rounded-md flex items-center gap-2">
+                <BookOpen className="h-5 w-5" />
+                Practice Mode
               </Button>
             </Link>
           </div>
