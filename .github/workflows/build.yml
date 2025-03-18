@@ -41,7 +41,7 @@ jobs:
         publish_dir: ./dist
 
     - name: FTP Deploy
-      uses: SamKirland/FTP-Deploy-Action@v4.3.3  # Updated to a working version
+      uses: appleboy/ftp-action@v1.0.0  # Correct version format with 'v'
       with:
         server: ${{ secrets.GIT_CPANEL_REACT_SERVER }}  # FTP server address
         username: ${{ secrets.GIT_CPANEL_REACT_USER }}  # FTP username
