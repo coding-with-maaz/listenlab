@@ -41,7 +41,7 @@ jobs:
         publish_dir: ./dist
 
     - name: FTP Deploy
-      uses: appleboy/ftp-action@v0.1.0  # Updated version of the FTP action
+      uses: appleboy/ftp-action@v0.0.1  # Latest stable version known to work
       with:
         host: ${{ secrets.GIT_CPANEL_REACT_SERVER }}  # FTP server address
         username: ${{ secrets.GIT_CPANEL_REACT_USER }}  # FTP username
