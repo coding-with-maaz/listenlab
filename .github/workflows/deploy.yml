@@ -26,12 +26,10 @@ jobs:
         npm run test
 
     - name: Sync files to server
-      uses: SamKirland/FTP-Deploy-Action@v4.3.4
+      uses: SamKirland/FTP-Deploy-Action@v4.3.2  # Updated version
       with:
         server: ${{ secrets.GIT_CPANEL_REACT_SERVER }}
         username: ${{ secrets.GIT_CPANEL_REACT_USER }}
         password: ${{ secrets.GIT_CPANEL_REACT_PWD }}
         protocol: ${{ secrets.GIT_CPANEL_REACT_PROTOCOL }}
         local-dir: ./build/
-
-
