@@ -40,8 +40,8 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
 
-    - name: FTP Deploy using SamKirland/FTP-Deploy-Action
-      uses: SamKirland/FTP-Deploy-Action@v4.3.4  # Use the latest stable version of SamKirland's action
+    - name: FTP Deploy
+      uses: SamKirland/FTP-Deploy-Action@v4.3.3  # Updated to a working version
       with:
         server: ${{ secrets.GIT_CPANEL_REACT_SERVER }}  # FTP server address
         username: ${{ secrets.GIT_CPANEL_REACT_USER }}  # FTP username
