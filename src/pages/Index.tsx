@@ -1,6 +1,5 @@
-
 import { Headphones, BookOpen, FileText, Mic } from 'lucide-react';
-import Navigation from '../components/Navigation';
+import Navigation from '../components/Navbar';
 import Hero from '../components/Hero';
 import StatsSection from '../components/StatsSection';
 import TestsSection from '../components/TestsSection';
@@ -8,14 +7,14 @@ import FeatureSection from '../components/FeatureSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import CtaSection from '../components/CtaSection';
 import FaqSection from '../components/FaqSection';
-import Footer from '../components/Footer';
+import { Footer } from '../components/Footer';
 
 const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
       
-      <main className="flex-grow pt-16">
+      <main className="flex-grow pt-0">
         <Hero />
         
         <StatsSection />

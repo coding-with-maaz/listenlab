@@ -1,0 +1,37 @@
+name: Deploy Website on Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Get latest code
+      uses: actions/checkout@v3
+
+    - name: Use Node.js 16
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+
+    - name: Install dependencies and build project
+      run: |
+        npm install
+        npm run build
+        npm run test
+
+    - name: Sync files to server
+      uses: SamKirland/FTP-Deploy-Action@v4.3.4
+      with:
+        server: ${{ secrets.GIT_CPANEL_REACT_SERVER }}
+        username: ${{ secrets.GIT_CPANEL_REACT_USER }}
+        password: ${{ secrets.GIT_CPANEL_REACT_PWD }}
+        protocol: ${{ secrets.GIT_CPANEL_REACT_PROTOCOL }}
+        local-dir: ./build/
+
+

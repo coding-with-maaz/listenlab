@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Headphones, 
@@ -8,7 +7,14 @@ import {
   BarChart, 
   CheckSquare,
   Home,
-  LogOut
+  LogOut,
+  Plus,
+  List,
+  BookOpen,
+  GraduationCap,
+  BookOpenText,
+  PenTool,
+  Mic
 } from 'lucide-react';
 import { 
   Sidebar, 
@@ -18,7 +24,9 @@ import {
   SidebarMenu, 
   SidebarMenuItem, 
   SidebarMenuButton, 
-  SidebarSeparator
+  SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
@@ -31,11 +39,57 @@ export function DashboardSidebar() {
 
   const menuItems = [
     { title: 'Dashboard', icon: Home, path: '/dashboard' },
-    { title: 'Listening Tests', icon: Headphones, path: '/dashboard/listening-tests' },
-    { title: 'Submissions', icon: CheckSquare, path: '/dashboard/submissions' },
-    { title: 'Users', icon: Users, path: '/dashboard/users' },
-    { title: 'Reports', icon: BarChart, path: '/dashboard/reports' },
-    { title: 'Settings', icon: Settings, path: '/dashboard/settings' },
+    {
+      group: 'Listening Tests',
+      items: [
+        { title: 'All Tests', icon: Headphones, path: '/dashboard/listening-tests' },
+        { title: 'Create Test', icon: Plus, path: '/dashboard/listening-tests/new' },
+        { title: 'Sections', icon: List, path: '/dashboard/listening-sections' },
+        { title: 'Question Bank', icon: BookOpen, path: '/dashboard/listening-questions' },
+      ]
+    },
+    {
+      group: 'Reading Tests',
+      items: [
+        { title: 'All Tests', icon: BookOpenText, path: '/dashboard/reading-tests' },
+        { title: 'Create Test', icon: Plus, path: '/dashboard/reading-tests/new' },
+        { title: 'Sections', icon: List, path: '/dashboard/reading-sections' },
+        { title: 'Question Bank', icon: BookOpen, path: '/dashboard/reading-questions' },
+      ]
+    },
+    {
+      group: 'Writing Tests',
+      items: [
+        { title: 'All Tests', icon: PenTool, path: '/dashboard/writing-tests' },
+        { title: 'Create Test', icon: Plus, path: '/dashboard/writing-tests/new' },
+        { title: 'Tasks', icon: List, path: '/dashboard/writing-tasks' },
+        { title: 'Question Bank', icon: BookOpen, path: '/dashboard/writing-questions' },
+      ]
+    },
+    {
+      group: 'Speaking Tests',
+      items: [
+        { title: 'All Tests', icon: Mic, path: '/dashboard/speaking-tests' },
+        { title: 'Create Test', icon: Plus, path: '/dashboard/speaking-tests/new' },
+        { title: 'Tasks', icon: List, path: '/dashboard/speaking-tasks' },
+        { title: 'Question Bank', icon: BookOpen, path: '/dashboard/speaking-questions' },
+      ]
+    },
+    {
+      group: 'Assessment',
+      items: [
+        { title: 'Submissions', icon: CheckSquare, path: '/dashboard/submissions' },
+        { title: 'Results', icon: GraduationCap, path: '/dashboard/results' },
+        { title: 'Reports', icon: BarChart, path: '/dashboard/reports' },
+      ]
+    },
+    {
+      group: 'Administration',
+      items: [
+        { title: 'Users', icon: Users, path: '/dashboard/users' },
+        { title: 'Settings', icon: Settings, path: '/dashboard/settings' },
+      ]
+    }
   ];
 
   return (
@@ -51,19 +105,43 @@ export function DashboardSidebar() {
       
       <SidebarContent>
         <SidebarMenu>
-          {menuItems.map((item) => (
-            <SidebarMenuItem key={item.path}>
-              <SidebarMenuButton 
-                asChild 
-                isActive={isActive(item.path)}
-                tooltip={item.title}
-              >
-                <Link to={item.path} className="w-full">
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+          {/* Dashboard */}
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              asChild 
+              isActive={isActive('/dashboard')}
+              tooltip="Dashboard"
+            >
+              <Link to="/dashboard" className="w-full">
+                <Home className="h-4 w-4" />
+                <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          <SidebarSeparator />
+
+          {/* Grouped Menu Items */}
+          {menuItems.slice(1).map((group) => (
+            'group' in group ? (
+              <SidebarGroup key={group.group}>
+                <SidebarGroupLabel>{group.group}</SidebarGroupLabel>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive(item.path)}
+                      tooltip={item.title}
+                    >
+                      <Link to={item.path} className="w-full">
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarGroup>
+            ) : null
           ))}
         </SidebarMenu>
       </SidebarContent>

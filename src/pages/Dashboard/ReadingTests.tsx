@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-// import { DashboardLayout } from '@/components/Dashboard/DashboardLayout';
+import { Link, useNavigate } from 'react-router-dom';
+import { DashboardLayout } from '@/components/Dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Headphones, 
+  BookOpen, 
   Plus, 
   MoreVertical, 
   Pencil, 
@@ -35,13 +35,37 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  useGetListeningTestsQuery,
-  useDeleteListeningTestMutation,
-  useUpdateListeningTestMutation,
-  ListeningTest,
-  ListeningTestResponse,
-} from '@/store/api/listeningTestsApi';
-import { Input } from '@/components/ui/input';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import {
+  useGetReadingTestsQuery,
+  useDeleteReadingTestMutation,
+  useUpdateReadingTestMutation,
+  ReadingTest,
+} from '@/store/api/readingTestsApi';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Popover,
@@ -50,7 +74,7 @@ import {
 } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useGetSectionsQuery } from '@/store/api/sectionsApi';
+import { useGetReadingSectionsQuery } from '@/store/api/readingSectionsApi';
 import {
   Command,
   CommandEmpty,
@@ -59,35 +83,49 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 
-export default function ListeningTestsPage() {
+const formSchema = z.object({
+  testName: z.string().min(1, "Test name is required"),
+  testType: z.enum(["academic", "general"]),
+  timeLimit: z.string().min(1, "Time limit is required"),
+});
+
+export default function ReadingTestsPage() {
   const [filter, setFilter] = useState('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editingTest, setEditingTest] = useState<ReadingTest | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
   
-  const { data: testsData, isLoading, error } = useGetListeningTestsQuery();
-  const { data: sectionsData, isLoading: isSectionsLoading } = useGetSectionsQuery();
-  const [deleteTest] = useDeleteListeningTestMutation();
-  const [updateTest] = useUpdateListeningTestMutation();
+  const { data: tests, isLoading, error } = useGetReadingTestsQuery();
+  const { data: sectionsData, isLoading: isSectionsLoading } = useGetReadingSectionsQuery();
+  const [deleteTest] = useDeleteReadingTestMutation();
+  const [updateTest] = useUpdateReadingTestMutation();
   
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [sectionSearchQuery, setSectionSearchQuery] = useState('');
   
-  // Get tests array from the response
-  const tests = testsData?.data?.tests || [];
-  
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      testName: "",
+      testType: "academic",
+      timeLimit: "",
+    },
+  });
+
   // Filter tests based on the current filter
   const filteredTests = filter === 'all' 
-    ? tests 
-    : tests.filter(test => test.difficulty === filter);
+    ? tests || [] 
+    : (tests || []).filter(test => test.testType === filter);
 
   // Get sections array from the response
-  const sections = sectionsData?.data?.sections || [];
+  const sections = sectionsData || [];
 
   // Filter sections based on search query
   const filteredSections = sections.filter(section => 
     !sectionSearchQuery || 
-    section.name.toLowerCase().includes(sectionSearchQuery.toLowerCase())
+    section.sectionName.toLowerCase().includes(sectionSearchQuery.toLowerCase())
   );
 
   const handleDelete = async (id: string) => {
@@ -95,7 +133,7 @@ export default function ListeningTestsPage() {
       await deleteTest(id).unwrap();
       toast({
         title: "Test deleted",
-        description: "The listening test has been successfully deleted.",
+        description: "The reading test has been successfully deleted.",
       });
       setDeleteId(null);
     } catch (error) {
@@ -107,20 +145,22 @@ export default function ListeningTestsPage() {
     }
   };
 
-  const handleDuplicate = async (test: ListeningTest) => {
-    const { _id, createdAt, sections, ...testData } = test;
+  const handleDuplicate = async (test: ReadingTest) => {
+    const { _id, createdAt, ...testData } = test;
     try {
       await updateTest({ 
         id: _id, 
         test: {
-          ...testData,
-          title: `${testData.title} (Copy)`,
+          testName: `${testData.testName} (Copy)`,
+          testType: testData.testType,
+          sections: testData.sections.map(section => section._id),
+          timeLimit: testData.timeLimit,
         }
       }).unwrap();
       
       toast({
         title: "Test duplicated", 
-        description: "The listening test has been successfully duplicated.",
+        description: "The reading test has been successfully duplicated.",
       });
     } catch (error) {
       toast({
@@ -143,34 +183,69 @@ export default function ListeningTestsPage() {
     setOpen(false);
   };
 
-  // if (isLoading) {
-  //   return (
-  //     <DashboardLayout title="Listening Tests">
-  //       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-  //         <Loader2 className="h-8 w-8 animate-spin" />
-  //       </div>
-  //     </DashboardLayout>
-  //   );
-  // }
+  const handleEdit = (test: ReadingTest) => {
+    setEditingTest(test);
+    form.reset({
+      testName: test.testName,
+      testType: test.testType,
+      timeLimit: test.timeLimit.toString(),
+    });
+  };
 
-  // if (error) {
-  //   return (
-  //     <DashboardLayout title="Listening Tests">
-  //       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-  //         <p className="text-red-500">Error loading tests. Please try again later.</p>
-  //       </div>
-  //     </DashboardLayout>
-  //   );
-  // }
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!editingTest) return;
+
+    try {
+      await updateTest({
+        id: editingTest._id,
+        test: {
+          testName: values.testName,
+          testType: values.testType,
+          timeLimit: parseInt(values.timeLimit),
+        },
+      }).unwrap();
+
+      toast({
+        title: "Test updated",
+        description: "The reading test has been successfully updated.",
+      });
+      setEditingTest(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update the test. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Reading Tests">
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout title="Reading Tests">
+        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
+          <p className="text-red-500">Error loading tests. Please try again later.</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
   
   return (
-    // <DashboardLayout title="Listening Tests">
-    <>
+    <DashboardLayout title="Reading Tests">
       <div className="mb-8 flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Listening Tests</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Reading Tests</h2>
           <p className="text-sm text-muted-foreground">
-            Manage all IELTS listening tests available on the platform.
+            Manage all IELTS reading tests available on the platform.
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -212,7 +287,7 @@ export default function ListeningTestsPage() {
                           {isSelected && <Check className="h-3 w-3" />}
                         </div>
                         <div className="flex flex-col flex-1">
-                          <span className="font-medium">{section.name}</span>
+                          <span className="font-medium">{section.sectionName}</span>
                           <span className="text-xs text-muted-foreground">
                             Section
                           </span>
@@ -225,7 +300,7 @@ export default function ListeningTestsPage() {
             </PopoverContent>
           </Popover>
           <Button asChild>
-            <Link to="/dashboard/listening-tests/new">
+            <Link to="/dashboard/reading-tests/new">
               <Plus className="mr-2 h-4 w-4" /> Add New Test
             </Link>
           </Button>
@@ -241,40 +316,33 @@ export default function ListeningTestsPage() {
           All Tests
         </Button>
         <Button 
-          variant={filter === 'hard' ? 'default' : 'outline'} 
+          variant={filter === 'academic' ? 'default' : 'outline'} 
           size="sm"
-          onClick={() => setFilter('hard')}
+          onClick={() => setFilter('academic')}
         >
-          Hard
+          Academic
         </Button>
         <Button 
-          variant={filter === 'medium' ? 'default' : 'outline'} 
+          variant={filter === 'general' ? 'default' : 'outline'} 
           size="sm"
-          onClick={() => setFilter('medium')}
+          onClick={() => setFilter('general')}
         >
-          Medium
-        </Button>
-        <Button 
-          variant={filter === 'easy' ? 'default' : 'outline'} 
-          size="sm"
-          onClick={() => setFilter('easy')}
-        >
-          Easy
+          General
         </Button>
       </div>
       
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredTests.map((test) => (
           <Card key={test._id} className="overflow-hidden">
-            <div className={`h-1 ${test.difficulty === 'hard' ? 'bg-red-500' : test.difficulty === 'medium' ? 'bg-yellow-500' : 'bg-green-500'}`}></div>
+            <div className={`h-1 ${test.testType === 'academic' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
               <CardTitle className="text-base font-medium flex gap-2 items-center">
-                <div className={`p-1.5 rounded-full ${test.difficulty === 'hard' ? 'bg-red-100 text-red-500' : test.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-500' : 'bg-green-100 text-green-500'}`}>
-                  <Headphones className="h-4 w-4" />
+                <div className={`p-1.5 rounded-full ${test.testType === 'academic' ? 'bg-blue-100 text-blue-500' : 'bg-green-100 text-green-500'}`}>
+                  <BookOpen className="h-4 w-4" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="truncate max-w-[200px]">{test.title}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{test.difficulty}</span>
+                  <span className="truncate max-w-[200px]">{test.testName}</span>
+                  <span className="text-xs text-muted-foreground capitalize">{test.testType}</span>
                 </div>
               </CardTitle>
               <DropdownMenu>
@@ -284,13 +352,11 @@ export default function ListeningTestsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to={`/dashboard/listening-tests/${test._id}/edit`}>
-                      <Pencil className="mr-2 h-4 w-4" /> Edit
-                    </Link>
+                  <DropdownMenuItem onClick={() => handleEdit(test)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to={`/dashboard/listening-tests/${test._id}/sections`}>
+                    <Link to={`/dashboard/reading-tests/${test._id}/sections`}>
                       <FileText className="mr-2 h-4 w-4" /> Manage Sections
                     </Link>
                   </DropdownMenuItem>
@@ -312,14 +378,14 @@ export default function ListeningTestsPage() {
                   <span className="text-muted-foreground">Questions</span>
                   <span className="font-medium flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                    {test.sections.length}
+                    {test.sections.reduce((total, section) => total + section.questions.length, 0)}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted-foreground">Duration</span>
                   <span className="font-medium flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                    {test.duration} min
+                    {test.timeLimit} min
                   </span>
                 </div>
                 <div className="flex flex-col">
@@ -328,19 +394,19 @@ export default function ListeningTestsPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-muted-foreground">Created</span>
-                  <span className="font-medium">{format(parseISO(test.createdAt), 'MMM dd, yyyy')}</span>
+                  <span className="font-medium">
+                    {test.createdAt ? format(parseISO(test.createdAt), 'MMM dd, yyyy') : 'N/A'}
+                  </span>
                 </div>
               </div>
               
               <div className="mt-4 flex items-center justify-between">
                 <span className={`text-xs ${
-                  test.difficulty === 'hard'
-                    ? 'text-red-600 bg-red-50'
-                    : test.difficulty === 'medium'
-                    ? 'text-yellow-600 bg-yellow-50'
+                  test.testType === 'academic'
+                    ? 'text-blue-600 bg-blue-50'
                     : 'text-green-600 bg-green-50'
                   } px-2 py-1 rounded-full font-medium capitalize`}>
-                  {test.difficulty}
+                  {test.testType}
                 </span>
               </div>
             </CardContent>
@@ -359,7 +425,7 @@ export default function ListeningTestsPage() {
                 className="flex items-center gap-1"
               >
                 <span className="truncate max-w-[200px]">
-                  {section.name}
+                  {section.sectionName}
                 </span>
                 <Button
                   variant="ghost"
@@ -384,7 +450,7 @@ export default function ListeningTestsPage() {
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the
-              listening test and all its associated data.
+              reading test and all its associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -398,6 +464,71 @@ export default function ListeningTestsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+
+      <Dialog open={!!editingTest} onOpenChange={() => setEditingTest(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Reading Test</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="testName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter test name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="testType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Test Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select test type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="academic">Academic</SelectItem>
+                        <SelectItem value="general">General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="timeLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time Limit (minutes)</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter time limit" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditingTest(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Save Changes</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </DashboardLayout>
   );
-}
+} 

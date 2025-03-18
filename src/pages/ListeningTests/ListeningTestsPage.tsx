@@ -1,121 +1,54 @@
-
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Headphones, Clock, FileText, Info, ArrowRight, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { useApi } from '@/hooks/use-api';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { useToast } from '@/components/ui/use-toast';
+import { useGetListeningTestsQuery, type ListeningTest } from '@/store/api/listeningTestsApi';
+import { useGetSectionsQuery, type Section } from '@/store/api/sectionsApi';
+import { useGetQuestionsQuery, type Question } from '@/store/api/questionsApi';
+import Navigation from '@/components/Navbar';
+import { Footer } from '@/components/Footer';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-// Mock data - replace with actual API call in production
-const mockListeningTests = [
-  {
-    id: '1',
-    testName: 'Academic Listening Test 1',
-    testType: 'academic',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Medium',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-05-10T10:30:00Z',
-  },
-  {
-    id: '2',
-    testName: 'General Training Listening Test 1',
-    testType: 'general',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Easy',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-05-15T14:20:00Z',
-  },
-  {
-    id: '3',
-    testName: 'Academic Listening Test 2',
-    testType: 'academic',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Hard',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-06-01T09:15:00Z',
-  },
-  {
-    id: '4',
-    testName: 'General Training Listening Test 2',
-    testType: 'general',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Medium',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-06-10T11:45:00Z',
-  },
-  {
-    id: '5',
-    testName: 'Academic Listening Test 3',
-    testType: 'academic',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Easy',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-06-20T13:30:00Z',
-  },
-  {
-    id: '6',
-    testName: 'General Training Listening Test 3',
-    testType: 'general',
-    totalQuestions: 40,
-    duration: 30,
-    difficulty: 'Hard',
-    sections: ['section1', 'section2', 'section3', 'section4'],
-    createdAt: '2023-07-05T10:00:00Z',
-  }
-];
+interface TestCardProps {
+  test: ListeningTest;
+}
 
-export default function ListeningTestsPage() {
-  const [filter, setFilter] = useState('all');
-  const [tests, setTests] = useState(mockListeningTests);
-  const { request, loading } = useApi();
+export function ListeningTestsPage() {
+  const [filter, setFilter] = useState<'all' | 'academic' | 'general'>('all');
+  const { data: response, isLoading, error } = useGetListeningTestsQuery();
   const { toast } = useToast();
 
   useEffect(() => {
-    // In a real implementation, fetch tests from the API
-    const fetchTests = async () => {
-      try {
-        // Uncomment for real API integration
-        // const response = await request({ url: '/api/listening-tests', withAuth: true });
-        // setTests(response);
-        
-        // For now, we'll use mock data
-        setTests(mockListeningTests);
-      } catch (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load listening tests',
-        });
-      }
-    };
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load listening tests',
+      });
+    }
+  }, [error, toast]);
 
-    fetchTests();
-  }, []);
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation />
+        <div className="flex-grow flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const tests = response?.data?.tests || [];
 
   // Filter tests based on selected tab
   const filteredTests = filter === 'all' 
     ? tests 
-    : tests.filter(test => test.testType === filter);
-
-  // Get difficulty color
-  const getDifficultyColor = (difficulty) => {
-    switch(difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-700';
-      case 'Medium': return 'bg-yellow-100 text-yellow-700';
-      case 'Hard': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
+    : tests.filter(test => test.type === filter);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -149,7 +82,7 @@ export default function ListeningTestsPage() {
                 >
                   All Tests
                 </TabsTrigger>
-                <TabsTrigger 
+                {/* <TabsTrigger 
                   value="academic" 
                   onClick={() => setFilter('academic')}
                 >
@@ -160,7 +93,7 @@ export default function ListeningTestsPage() {
                   onClick={() => setFilter('general')}
                 >
                   General Training
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
               
               <Button variant="outline" size="sm" className="gap-2">
@@ -172,7 +105,7 @@ export default function ListeningTestsPage() {
             <TabsContent value="all" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTests.map((test) => (
-                  <TestCard key={test.id} test={test} />
+                  <TestCard key={test._id} test={test} />
                 ))}
               </div>
             </TabsContent>
@@ -180,7 +113,7 @@ export default function ListeningTestsPage() {
             <TabsContent value="academic" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTests.map((test) => (
-                  <TestCard key={test.id} test={test} />
+                  <TestCard key={test._id} test={test} />
                 ))}
               </div>
             </TabsContent>
@@ -188,7 +121,7 @@ export default function ListeningTestsPage() {
             <TabsContent value="general" className="mt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTests.map((test) => (
-                  <TestCard key={test.id} test={test} />
+                  <TestCard key={test._id} test={test} />
                 ))}
               </div>
             </TabsContent>
@@ -202,31 +135,22 @@ export default function ListeningTestsPage() {
 }
 
 // Test Card Component
-function TestCard({ test }) {
-  const getDifficultyColor = (difficulty) => {
-    switch(difficulty) {
-      case 'Easy': return 'bg-green-100 text-green-700';
-      case 'Medium': return 'bg-yellow-100 text-yellow-700';
-      case 'Hard': return 'bg-red-100 text-red-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const getTestTypeColor = (type) => {
+function TestCard({ test }: TestCardProps) {
+  const getTestTypeColor = (type: 'academic' | 'general') => {
     return type === 'academic' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700';
   };
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
-      <div className={`h-1.5 ${test.testType === 'academic' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
+      <div className={`h-1.5 ${test.type === 'academic' ? 'bg-blue-500' : 'bg-green-500'}`}></div>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-semibold flex items-start space-x-3">
-          <div className={`p-2 mt-0.5 rounded-full flex-shrink-0 ${getTestTypeColor(test.testType)}`}>
+          <div className={`p-2 mt-0.5 rounded-full flex-shrink-0 ${getTestTypeColor(test.type)}`}>
             <Headphones className="h-4 w-4" />
           </div>
           <div>
-            <div className="truncate">{test.testName}</div>
-            <p className="text-xs text-gray-500 font-normal mt-1 capitalize">{test.testType} Test</p>
+            <div className="truncate">{test.title}</div>
+            <p className="text-xs text-gray-500 font-normal mt-1 capitalize">{test.type} Test</p>
           </div>
         </CardTitle>
       </CardHeader>
@@ -238,16 +162,12 @@ function TestCard({ test }) {
           </div>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-gray-400" />
-            <span>{test.totalQuestions} questions</span>
+            <span>{test.sections.length * 10} questions</span>
           </div>
         </div>
         
         <div className="flex items-center justify-between mt-4">
-          <span className={`text-xs font-medium px-2 py-1 rounded-full ${getDifficultyColor(test.difficulty)}`}>
-            {test.difficulty}
-          </span>
-          
-          <Link to={`/tests/listening/${test.id}`}>
+          <Link to={`/tests/listening/${test._id}`}>
             <Button variant="ghost" size="sm" className="text-primary hover:text-primary-focus">
               <span>Start Test</span>
               <ArrowRight className="ml-1 h-4 w-4" />
@@ -258,3 +178,5 @@ function TestCard({ test }) {
     </Card>
   );
 }
+
+export default ListeningTestsPage; 

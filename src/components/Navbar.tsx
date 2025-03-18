@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -12,16 +12,51 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Menu, X, ChevronDown, Headphones, BookOpen, FileText, Mic, User, LogOut, Settings } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useGetCurrentUserQuery, useLogoutMutation } from '@/store/api/authApi';
+import { useToast } from '@/components/ui/use-toast';
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const isMobile = useIsMobile();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { data: user, isLoading } = useGetCurrentUserQuery();
+  const [logout] = useLogoutMutation();
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
   
-  const isAuthenticated = true; // This would come from auth state in a real app
+  const isAuthenticated = user?.success && !!user?.data?.user;
+  const isAdmin = user?.data?.user?.role === 'admin';
+
+  const handleLogout = async () => {
+    try {
+      // Navigate first for immediate feedback
+      navigate('/login', { replace: true });
+      
+      // Then perform the logout
+      await logout().unwrap();
+      
+      // Clear any cached data or local storage if needed
+      localStorage.removeItem('auth_token');
+      
+      // Show success message
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account.",
+      });
+    } catch (error) {
+      // If there's an error, still try to navigate to login
+      navigate('/login', { replace: true });
+      
+      toast({
+        title: "Error",
+        description: "There was an issue logging out, but you've been redirected to the login page.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <nav className="bg-white shadow fixed top-0 left-0 right-0 z-50">
@@ -101,26 +136,33 @@ export function Navigation() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                        <AvatarFallback>JS</AvatarFallback>
+                        <AvatarImage 
+                          src={user?.data?.user?.profile?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.data?.user?.name || 'U')}`} 
+                          alt={user?.data?.user?.name} 
+                        />
+                        <AvatarFallback>{user?.data?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
-                        <User className="h-4 w-4" /> Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
-                        <Settings className="h-4 w-4" /> Dashboard
-                      </Link>
-                    </DropdownMenuItem>
+                    {isAuthenticated && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/profile" className="flex items-center gap-2 cursor-pointer">
+                          <User className="h-4 w-4" /> Profile
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                          <Settings className="h-4 w-4" /> Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                    <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer">
                       <LogOut className="h-4 w-4" /> Logout
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -131,7 +173,7 @@ export function Navigation() {
                 <Link to="/login">
                   <Button variant="ghost">Log in</Button>
                 </Link>
-                <Link to="/signup">
+                <Link to="/register">
                   <Button className="ml-2">Sign up</Button>
                 </Link>
               </div>
@@ -194,23 +236,36 @@ export function Navigation() {
                 <div className="flex items-center px-4">
                   <div className="flex-shrink-0">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-                      <AvatarFallback>JS</AvatarFallback>
+                      <AvatarImage 
+                        src={user?.data?.user?.profile?.avatar?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.data?.user?.name || 'U')}`} 
+                        alt={user?.data?.user?.name} 
+                      />
+                      <AvatarFallback>{user?.data?.user?.name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                   </div>
                   <div className="ml-3">
-                    <div className="text-base font-medium text-gray-800">John Smith</div>
-                    <div className="text-sm font-medium text-gray-500">john@example.com</div>
+                    <div className="text-base font-medium text-gray-800">{user?.data?.user?.name}</div>
+                    <div className="text-sm font-medium text-gray-500">{user?.data?.user?.email}</div>
                   </div>
                 </div>
                 <div className="mt-3 space-y-1 px-4">
-                  <Link to="/profile" className="mobile-nav-link" onClick={closeMenu}>
-                    Profile
-                  </Link>
-                  <Link to="/dashboard" className="mobile-nav-link" onClick={closeMenu}>
-                    Dashboard
-                  </Link>
-                  <button className="mobile-nav-link w-full text-left">
+                  {isAuthenticated && (
+                    <Link to="/profile" className="mobile-nav-link" onClick={closeMenu}>
+                      Profile
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link to="/dashboard" className="mobile-nav-link" onClick={closeMenu}>
+                      Dashboard
+                    </Link>
+                  )}
+                  <button 
+                    className="mobile-nav-link w-full text-left"
+                    onClick={() => {
+                      handleLogout();
+                      closeMenu();
+                    }}
+                  >
                     Sign out
                   </button>
                 </div>
@@ -220,7 +275,7 @@ export function Navigation() {
                 <Link to="/login" className="mobile-nav-link" onClick={closeMenu}>
                   Log in
                 </Link>
-                <Link to="/signup" className="mobile-nav-link" onClick={closeMenu}>
+                <Link to="/register" className="mobile-nav-link" onClick={closeMenu}>
                   Sign up
                 </Link>
               </div>

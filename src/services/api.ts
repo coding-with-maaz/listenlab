@@ -2,7 +2,7 @@
 import { createFormDataWithFiles } from '@/utils/fileUtils';
 
 // API Base URL - in a real app, you'd use environment variables
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:4000/api';
 
 // Types
 export interface Test {
