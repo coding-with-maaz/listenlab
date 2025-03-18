@@ -25,12 +25,8 @@ jobs:
         npm run build
         npm run test
 
-    - name: Sync files to server
-      uses: appleboy/ftp-action@v1.0.0  # Use the appleboy FTP action
-      with:
-        host: ${{ secrets.GIT_CPANEL_REACT_SERVER }}
-        username: ${{ secrets.GIT_CPANEL_REACT_USER }}
-        password: ${{ secrets.GIT_CPANEL_REACT_PWD }}
-        protocol: ${{ secrets.GIT_CPANEL_REACT_PROTOCOL }}
-        local-dir: ./build/
-        remote-dir: /path/to/your/remote/directory  # Update with your server's path
+    - name: Sync files to server using lftp
+      run: |
+        apt-get update
+        apt-get install -y lftp
+        lftp -u ${{ secrets.GIT_CPANEL_REACT_USER }},${{ secrets.GIT_CPANEL_REACT_PWD }} ${{ secrets.GIT_CPANEL_REACT_PROTOCOL }}://${{ secrets.GIT_CPANEL_REACT_SERVER }} -e "mirror -R ./build /public_html/; quit"
