@@ -1,28 +1,50 @@
 name: React App build workflow
+
 on:
   push:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [15]
+        node-version: [16]  # Use a stable, LTS Node.js version
     steps:
     - uses: actions/checkout@v3
-    - uses: pnpm/action-setup@v2.2.4
-      with:
-        version: 7
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'pnpm'
+        cache: 'npm'
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
     - name: Install dependencies
-      run: pnpm install
+      run: npm install --legacy-peer-deps
+
     - name: Build
-      run: pnpm run build
-    - name: Deploy
+      run: npm run build
+
+    - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
+
+    - name: FTP Deploy
+      uses: appleboy/ftp-action@v1.0.0  # FTP deploy action
+      with:
+        host: ${{ secrets.GIT_CPANEL_REACT_SERVER }}  # FTP server address
+        username: ${{ secrets.GIT_CPANEL_REACT_USER }}  # FTP username
+        password: ${{ secrets.GIT_CPANEL_REACT_PWD }}  # FTP password
+        protocol: ${{ secrets.GIT_CPANEL_REACT_PROTOCOL }}  # FTP protocol (ftp/sftp)
+        local-dir: ./dist  # Local directory for deployment
